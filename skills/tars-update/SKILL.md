@@ -13,12 +13,13 @@ Their memory repo is half upstream and half theirs. This brings the upstream hal
 ## 1. Fetch upstream
 
 ```bash
-TARS_SRC="${CLAUDE_PLUGIN_ROOT:-$HOME/.cache/tars/src}"
+TARS_SRC="$HOME/.tars/src"
 if [ -d "$TARS_SRC/.git" ]; then git -C "$TARS_SRC" pull -q --ff-only
-elif [ ! -d "$TARS_SRC" ]; then git clone -q --depth 1 https://github.com/michelgrolet/tars.git "$TARS_SRC"; fi
+else git clone -q https://github.com/michelgrolet/tars.git "$TARS_SRC"; fi
+python3 "$TARS_SRC/tools/tars.py" --version
 ```
 
-If the plugin is installed rather than cloned, `claude plugin update tars` refreshes the skills and `${CLAUDE_PLUGIN_ROOT}` already points at the new version. Tell them a restart applies it, once, and move on.
+Upstream is a git repo and nothing else. If they also installed the skills through a harness, refresh those too (`claude plugin update tars` on Claude Code) so the skills and the protocols move together. Tell them a restart applies it, once, and move on.
 
 ## 2. Look before you write
 

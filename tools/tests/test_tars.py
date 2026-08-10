@@ -57,7 +57,7 @@ class TarsTestCase(unittest.TestCase):
         (fork / "template").parent.mkdir(parents=True, exist_ok=True)
         shutil.copytree(TEMPLATE, fork / "template")
         shutil.copytree(ROOT / "tools", fork / "tools")
-        shutil.copytree(ROOT / ".claude-plugin", fork / ".claude-plugin")
+        shutil.copy2(ROOT / "VERSION", fork / "VERSION")
         return fork / "template"
 
 
@@ -374,6 +374,76 @@ class TestEndToEnd(TarsTestCase):
         self.assertEqual(payload["data"]["rules_checked"], len(tars.REQUIRED_RULES))
 
 
+class TestDiscovery(TarsTestCase):
+    """An agent handed nothing but a git URL does not know where the memory lives.
+    Everything here exists so it never has to ask."""
+
+    def doctor(self, path=None) -> tars.Result:
+        return tars.cmd_doctor(Namespace(path=path, home=str(self.home), json=True))
+
+    def test_doctor_finds_the_repo_through_the_claude_wiring(self) -> None:
+        self.make_repo()
+        result = self.doctor()
+        self.assertEqual(result.data["repo"], str(self.repo.resolve()))
+        self.assertTrue(result.data["awakened"] is False or "awakened" in result.data)
+
+    def test_doctor_falls_back_to_the_codex_symlink(self) -> None:
+        self.make_repo()
+        (self.home / ".claude/CLAUDE.md").unlink()
+        self.assertEqual(tars.locate_repo(None, self.home), self.repo.resolve())
+
+    def test_doctor_says_so_instead_of_guessing_when_nothing_is_wired(self) -> None:
+        result = tars.cmd_doctor(Namespace(path=str(self.tmp / "nowhere"),
+                                           home=str(self.home), json=True))
+        self.assertFalse(result.ok)
+        self.assertFalse(result.data["awakened"])
+
+    def test_an_explicit_path_always_wins_over_the_wiring(self) -> None:
+        self.make_repo()
+        elsewhere = self.tmp / "elsewhere"
+        self.assertEqual(tars.locate_repo(str(elsewhere), self.home), elsewhere.resolve())
+
+    def test_the_version_comes_from_a_file_no_harness_owns(self) -> None:
+        self.assertEqual(tars.plugin_version(TEMPLATE), (ROOT / "VERSION").read_text().strip())
+
+
+class TestBootstrapDocs(unittest.TestCase):
+    """A git URL is the only thing TARS asks for. These pin the places that could quietly
+    stop being true: a skill that only works once a plugin is installed, or a second
+    source path that leaves two clones on disk disagreeing about the version."""
+
+    SOURCE = "$HOME/.tars/src"
+    CLONE = "https://github.com/michelgrolet/tars.git"
+
+    def skills(self) -> list[Path]:
+        return sorted((ROOT / "skills").glob("*/SKILL.md"))
+
+    def test_the_bootstrap_file_stands_on_its_own(self) -> None:
+        text = (ROOT / "AGENTS.md").read_text()
+        self.assertIn(self.CLONE, text)
+        self.assertIn("tools/tars.py", text)
+        self.assertIn("skills/awaken/SKILL.md", text)
+
+    def test_no_skill_needs_a_harness_to_find_its_source(self) -> None:
+        for skill in self.skills():
+            text = skill.read_text()
+            if "CLAUDE_PLUGIN_ROOT" not in text:
+                continue
+            self.assertIn(self.SOURCE, text,
+                          f"{skill.parent.name} uses CLAUDE_PLUGIN_ROOT with no git fallback")
+
+    def test_every_source_path_is_the_same_one(self) -> None:
+        stale = [p.name for p in (ROOT / "AGENTS.md", ROOT / "README.md", *self.skills())
+                 if ".cache/tars" in p.read_text()]
+        self.assertEqual(stale, [], f"an older source path survives in {stale}")
+
+    def test_the_readme_leads_with_the_url_not_with_a_vendor(self) -> None:
+        head = (ROOT / "README.md").read_text().split("## The problem")[0]
+        self.assertIn("github.com/michelgrolet/tars", head)
+        self.assertLess(head.index("github.com/michelgrolet/tars"), head.index("claude plugin"),
+                        "the Claude Code shortcut is listed above the git URL")
+
+
 class TestMarketplace(unittest.TestCase):
     """The registry is the only thing standing between someone and code that runs with
     their agent's permissions, so a malformed entry has to fail here rather than at install."""
@@ -414,6 +484,9 @@ class TestMarketplace(unittest.TestCase):
             self.assertIn(source["source"], ("url", "git-subdir"),
                           f"{entry['name']} uses source kind {source['source']!r}")
             self.assertTrue(source["url"].startswith("https://"), source["url"])
+
+    def test_the_plugin_manifest_mirrors_VERSION_rather_than_owning_it(self) -> None:
+        self.assertEqual(self.plugin["version"], (ROOT / "VERSION").read_text().strip())
 
     def test_the_marketplace_agrees_with_the_plugin_it_ships(self) -> None:
         own = [entry for entry in self.entries if entry["name"] == self.plugin["name"]]

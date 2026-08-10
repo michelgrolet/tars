@@ -17,16 +17,15 @@ They want the agent to be able to do something it cannot do yet. Three shapes, a
 
 ## Installing something that exists
 
+The extensions built for a memory are indexed in `extensions/README.md` upstream, each with a git URL. `people-memory` is the one to reach for the moment they want the agent to remember people: a private graph with `search_people`, `remember_person`, `add_fact`, `connect_people` and `find_intro_path`, plus skills that record someone during ordinary conversation.
+
 ```bash
-claude plugin marketplace list
-claude plugin install <name>@<marketplace>
+claude plugin install people-memory@tars     # Claude Code, one command
 ```
 
-The `tars` marketplace carries the extensions built for a memory. `people-memory` is the one to reach for the moment they want the agent to remember people: a private graph with `search_people`, `remember_person`, `add_fact`, `connect_people` and `find_intro_path`, plus skills that record someone during ordinary conversation. One install brings the skills and wires the MCP server.
+Anywhere else, clone the extension's repo and follow its own `AGENTS.md` or `README.md`, then add its MCP server the way this harness does it (`claude mcp add`, an entry in a config file, whatever applies here). **Record in `memory/` what it is for and which tools it exposes.** A connector nobody wrote down is a connector nobody uses.
 
-If they name a repo instead of a plugin, add its marketplace first: `claude plugin marketplace add owner/repo`. `claude plugin details <name>` shows what it brings and what it costs in context before anything is installed, so read that to them rather than installing blind.
-
-For an MCP server with no plugin around it, add it with `claude mcp add`, and record in `memory/` what it is for and which tools it exposes. A connector nobody wrote down is a connector nobody uses.
+`claude plugin details <name>` shows what a plugin brings and what it costs in context before anything is installed, so read that to them rather than installing blind.
 
 **Two things before installing anything.** Say who wrote it and what it will be able to reach. A plugin runs with the agent's permissions, so "it is on a marketplace" is not a safety statement. A restart is what applies it: say that once, at the end, not as a running commentary.
 

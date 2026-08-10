@@ -167,13 +167,40 @@ def walk(root: Path) -> list[Path]:
 
 
 def plugin_version(template: Path) -> str:
-    manifest = template.parent / ".claude-plugin" / "plugin.json"
-    if manifest.is_file():
-        try:
-            return json.loads(manifest.read_text(encoding="utf-8")).get("version", "0.0.0")
-        except json.JSONDecodeError:
-            pass
+    """The version of the source this repo was built from.
+
+    It lives in a plain VERSION file rather than in a harness manifest, because a git URL
+    is the only thing TARS requires and a version that only exists inside a Claude plugin
+    manifest would make that untrue.
+    """
+    for candidate in (template.parent / "VERSION", HERE.parent / "VERSION"):
+        if candidate.is_file():
+            return candidate.read_text(encoding="utf-8").strip() or "0.0.0"
     return "0.0.0"
+
+
+def locate_repo(given: str | None, home: Path) -> Path | None:
+    """Find the human's memory repo without being told where it is.
+
+    An agent handed nothing but a git URL has no idea where the memory lives, so the
+    wiring is the source of truth: whatever ~/.claude/CLAUDE.md imports is the repo.
+    """
+    if given:
+        return Path(given).expanduser().resolve()
+    global_md = home / ".claude" / "CLAUDE.md"
+    if global_md.is_file():
+        for line in global_md.read_text(encoding="utf-8").splitlines():
+            if line.startswith("@") and line.rstrip().endswith("CLAUDE.md"):
+                threshold = Path(line[1:].strip()).expanduser()
+                if threshold.is_file():
+                    return threshold.parent.resolve()
+    agents = home / ".codex" / "AGENTS.md"
+    if agents.is_symlink():
+        threshold = agents.resolve()
+        if threshold.is_file():
+            return threshold.parent
+    local = Path.cwd()
+    return local if (local / "CLAUDE.md").is_file() else None
 
 
 # ---------------------------------------------------------------------------- local blocks
@@ -377,10 +404,17 @@ def cmd_validate(args: argparse.Namespace) -> Result:
 
 def cmd_doctor(args: argparse.Namespace) -> Result:
     result = Result()
-    repo = Path(args.path).expanduser().resolve()
     home = Path(args.home).expanduser() if args.home else Path.home()
+    repo = locate_repo(args.path, home)
 
+    if repo is None:
+        result.data["awakened"] = False
+        result.fail("no memory repo found in the wiring or here — run tars init first")
+        return result
+
+    result.data["repo"] = str(repo)
     if not (repo / "CLAUDE.md").is_file():
+        result.data["awakened"] = False
         result.fail(f"no memory repo at {repo} — run tars init first")
         return result
 
@@ -525,6 +559,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="tars", description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--json", action="store_true", help="machine-readable output")
+    parser.add_argument("--version", action="version",
+                        version=plugin_version(DEFAULT_TEMPLATE))
     sub = parser.add_subparsers(dest="command", required=True)
 
     init = sub.add_parser("init", help="materialize a memory repo and wire it in")
@@ -540,7 +576,8 @@ def build_parser() -> argparse.ArgumentParser:
     validate.set_defaults(func=cmd_validate)
 
     doctor = sub.add_parser("doctor", help="end-to-end health of the install")
-    doctor.add_argument("path", nargs="?", default=".")
+    doctor.add_argument("path", nargs="?", default=None,
+                        help="the memory repo; found from the wiring when omitted")
     doctor.add_argument("--home", default=None)
     doctor.set_defaults(func=cmd_doctor)
 

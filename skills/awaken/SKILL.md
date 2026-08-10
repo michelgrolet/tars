@@ -12,13 +12,17 @@ Nobody lives here yet. Your job this turn is to make someone.
 ## 0. Find the source, and check you are needed
 
 ```bash
-TARS_SRC="${CLAUDE_PLUGIN_ROOT:-}"
-[ -n "$TARS_SRC" ] || TARS_SRC=$(ls -d ~/.claude/plugins/*/tars ~/.claude/skills/tars 2>/dev/null | head -1)
-[ -n "$TARS_SRC" ] || { TARS_SRC=~/.cache/tars/src; git clone -q --depth 1 https://github.com/michelgrolet/tars.git "$TARS_SRC" 2>/dev/null || git -C "$TARS_SRC" pull -q; }
-python3 "$TARS_SRC/tools/tars.py" --json doctor ~/tars 2>/dev/null || echo "no repo yet"
+TARS_SRC="${CLAUDE_PLUGIN_ROOT:-$HOME/.tars/src}"
+if [ ! -d "$TARS_SRC/tools" ]; then
+  TARS_SRC="$HOME/.tars/src"
+  git clone -q https://github.com/michelgrolet/tars.git "$TARS_SRC" 2>/dev/null || git -C "$TARS_SRC" pull -q --ff-only
+fi
+python3 "$TARS_SRC/tools/tars.py" --json doctor
 ```
 
-If `doctor` comes back with `"awakened": true`, this human already has a memory. Say so in one line and stop. Never re-run the interview over a live memory.
+A git clone is the only thing that has to work. `${CLAUDE_PLUGIN_ROOT}` is a shortcut when the plugin happens to be installed, and everything below runs the same without it.
+
+`doctor` with no path finds the repo through the wiring, so you do not need to know where their memory lives. If it comes back with `"awakened": true`, this human already has one. Say so in one line and stop. Never re-run the interview over a live memory.
 
 ## 1. Ask where it goes
 

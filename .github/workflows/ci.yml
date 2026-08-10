@@ -49,6 +49,26 @@ jobs:
           if git commit -m "should not land"; then echo "hook did not fire"; exit 1; fi
           echo "hook blocked it"
 
+  bootstrap:
+    # The README promises that a git URL and a shell are the whole dependency list.
+    # This job is that promise, run against a clone rather than the checkout.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - name: A clone of this commit installs itself with nothing but git and python
+        run: |
+          git config --global user.email ci@example.com
+          git config --global user.name CI
+          git clone -q "$GITHUB_WORKSPACE" /tmp/src
+          test -f /tmp/src/AGENTS.md
+          test "$(python3 /tmp/src/tools/tars.py --version)" = "$(cat VERSION)"
+          HOME=/tmp/bootstrap-home python3 /tmp/src/tools/tars.py init /tmp/bootstrap-home/tars
+          HOME=/tmp/bootstrap-home python3 /tmp/src/tools/tars.py --json doctor | tee /tmp/found.json
+          python3 -c "import json;d=json.load(open('/tmp/found.json'))['data'];assert d['repo']=='/tmp/bootstrap-home/tars',d['repo'];assert d['claude_wired'];print('found the repo through the wiring alone')"
+
   manifests:
     runs-on: ubuntu-latest
     steps:

@@ -10,10 +10,10 @@ Something is off, or they want to know it isn't. Find out, fix what you can, and
 ## 1. Run it
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT:-$HOME/.cache/tars/src}/tools/tars.py" --json doctor ~/tars
+python3 "${CLAUDE_PLUGIN_ROOT:-$HOME/.tars/src}/tools/tars.py" --json doctor
 ```
 
-Substitute their repo path if it is not `~/tars`. Inside the repo, `python3 tools/tars.py --json doctor .` works too.
+No path: it reads the wiring to find their repo, which is also the first thing being diagnosed. If the source is not on disk either, `git clone https://github.com/michelgrolet/tars.git ~/.tars/src` first. Inside a memory repo, `python3 tools/tars.py --json doctor .` works too.
 
 ## 2. Read the answer
 

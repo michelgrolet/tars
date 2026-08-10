@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.0
+
+TARS depends on git and nothing else. A harness can make it more convenient; none can be required.
+
+- `AGENTS.md` at the root is the bootstrap. Hand any agent the git URL and one sentence, and it clones the source, runs the interview, builds the memory repo and offers to push it to a private repo of the human's own.
+- `tars doctor` with no argument finds the memory repo through the wiring, so an agent that knows only the URL never has to ask where the memory lives.
+- The version lives in a plain `VERSION` file that `tars --version` reads. The plugin manifest mirrors it, and a test fails the build if the two disagree.
+- The skills fall back to a clone when no plugin root is present. `TestBootstrapDocs` fails the build on a skill that needs a harness to find its source, and on a README that lists a vendor command above the git URL.
+- A `bootstrap` CI job clones the commit into a clean directory and installs from the clone.
+
 ## 1.1.0
 
 - The marketplace now indexes extensions, not only TARS itself. First one: `people-memory`, a private people graph with six MCP tools and six skills, installed with `claude plugin install people-memory@tars`.
