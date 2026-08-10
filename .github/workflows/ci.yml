@@ -1,0 +1,70 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python: ["3.10", "3.13"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Tests
+        run: python -m unittest discover -s tools/tests -v
+
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: A fresh repo builds, validates and commits
+        run: |
+          git config --global user.email ci@example.com
+          git config --global user.name CI
+          python3 tools/tars.py init /tmp/memory --home /tmp/fakehome
+          python3 tools/tars.py --json doctor /tmp/memory --home /tmp/fakehome | tee /tmp/doctor.json
+          python3 -c "import json;d=json.load(open('/tmp/doctor.json'));assert d['data']['claude_wired'],'not wired';assert not d['data']['awakened'],'should be un-woken'"
+          git -C /tmp/memory add -A
+          git -C /tmp/memory commit -m "ci" --quiet
+      - name: The hook refuses a threshold with a rule removed
+        run: |
+          cd /tmp/memory
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("CLAUDE.md")
+          p.write_text(p.read_text().replace("FIX THE PRODUCER", "do stuff"))
+          PY
+          git add -A
+          if git commit -m "should not land"; then echo "hook did not fire"; exit 1; fi
+          echo "hook blocked it"
+
+  manifests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Plugin and marketplace manifests are valid JSON with the fields they need
+        run: |
+          python3 - <<'PY'
+          import json, pathlib
+          plugin = json.loads(pathlib.Path(".claude-plugin/plugin.json").read_text())
+          market = json.loads(pathlib.Path(".claude-plugin/marketplace.json").read_text())
+          for key in ("name", "version", "description", "skills"):
+              assert key in plugin, f"plugin.json missing {key}"
+          assert market["plugins"][0]["name"] == plugin["name"], "marketplace and plugin disagree on the name"
+          for path in plugin["skills"]:
+              assert pathlib.Path(path.lstrip("./")).is_dir(), f"declared skills dir {path} does not exist"
+          skills = sorted(p.parent.name for p in pathlib.Path("skills").glob("*/SKILL.md"))
+          assert skills, "no skills found"
+          print("ok:", ", ".join(skills))
+          PY
