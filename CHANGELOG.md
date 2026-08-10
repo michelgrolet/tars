@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.0
+
+- `extensions/registry.json` is the index and the source of truth: a git URL per extension, plus what it needs before it is any use. `tools/registry.py` projects it into `.claude-plugin/marketplace.json`, and a test fails the build when the two drift.
+- Requirements are three independent fields, because they fail differently. `database` is a Docker container on the same laptop. `credentials` is an OAuth grant nobody can obtain for you. `always_on` is the only one that means a server.
+
 ## 1.2.0
 
 TARS depends on git and nothing else. A harness can make it more convenient; none can be required.

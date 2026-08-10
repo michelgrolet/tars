@@ -11,17 +11,20 @@
       "name": "tars",
       "description": "A harness for a personal agent: identity, law, memory and a self-extending skill library in one git repo, wired into every Claude Code and Codex session and updated without ever overwriting what you wrote.",
       "author": {
-        "name": "Michel Grolet"
+        "name": "Michel Grolet",
+        "url": "https://github.com/michelgrolet"
       },
       "category": "productivity",
       "source": "./",
-      "homepage": "https://github.com/michelgrolet/tars"
+      "homepage": "https://github.com/michelgrolet/tars",
+      "license": "MIT"
     },
     {
       "name": "people-memory",
       "description": "A private people graph that gives your agent durable memory of everyone you know. MCP tools to search, remember and connect people, plus skills that record them during ordinary conversation. Postgres behind it, self-hostable.",
       "author": {
-        "name": "Michel Grolet"
+        "name": "Michel Grolet",
+        "url": "https://github.com/michelgrolet"
       },
       "category": "productivity",
       "source": {

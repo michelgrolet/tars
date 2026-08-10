@@ -113,18 +113,27 @@ There is a CLI. You are not meant to type it. The skills do, and the skills are 
 
 ## Extensions
 
-A memory is the substrate. Extensions are what plugs into it, and they are indexed in one file that carries a name, a description and a git URL each, readable by any agent.
+The harness is the substrate. Extensions are the capabilities that plug into it, indexed in [`extensions/registry.json`](extensions/registry.json) with a git URL and, for each one, what it needs before it is any use:
 
-**[people-memory](https://github.com/michelgrolet/people-memory-mcp)** gives the agent a private graph of everyone you know: `search_people`, `remember_person`, `add_fact`, `connect_people`, `find_intro_path`, plus skills that record people during ordinary conversation instead of asking you to fill in a CRM. Postgres, self-hostable, MIT.
+```bash
+python3 tools/registry.py
+```
 
-Ask your agent to add it, or type it yourself:
+```
+people-memory  https://github.com/michelgrolet/people-memory-mcp
+               needs: a postgres to point it at, local or hosted
+```
+
+Three requirements, listed separately because they fail differently. `database` means a Docker container or a free hosted project, on the same laptop as the agent. `credentials` means an OAuth grant nobody can obtain for you. `always_on` is the only one that means a server, because a session or a listener dies when a laptop sleeps.
+
+**[people-memory](https://github.com/michelgrolet/people-memory-mcp)** gives the agent a private graph of everyone you know: `search_people`, `remember_person`, `add_fact`, `connect_people`, `find_intro_path`, plus skills that record people during ordinary conversation instead of asking you to fill in a CRM. MIT.
 
 ```bash
 claude plugin install people-memory@tars     # Claude Code
 git clone https://github.com/michelgrolet/people-memory-mcp.git   # anywhere else, then follow its README
 ```
 
-An extension runs with your agent's permissions, so read what it loads before installing it. [`extensions/README.md`](extensions/README.md) has the index, the rule for where an extension lives, and how to add one.
+An extension runs with your agent's permissions, so read what it loads before installing it. [`extensions/README.md`](extensions/README.md) has the rule for where an extension lives and how to add one.
 
 ## The CLI underneath
 
@@ -156,7 +165,7 @@ It also states what it does not protect against: anyone with shell access, anoth
 python3 -m unittest discover -s tools/tests -v
 ```
 
-51 tests, no dependencies. CI runs them on Linux and macOS against Python 3.10 and 3.13, plus a smoke job that builds a repo from scratch in a sandboxed `$HOME` and checks that the pre-commit hook actually refuses a threshold with a rule removed, plus a bootstrap job that clones the commit into a clean directory and installs from the clone, because "a git URL and a shell" is a claim and not a hope.
+56 tests, no dependencies. CI runs them on Linux and macOS against Python 3.10 and 3.13, plus a smoke job that builds a repo from scratch in a sandboxed `$HOME` and checks that the pre-commit hook actually refuses a threshold with a rule removed, plus a bootstrap job that clones the commit into a clean directory and installs from the clone, because "a git URL and a shell" is a claim and not a hope.
 
 ## Layout
 
@@ -168,7 +177,7 @@ python3 -m unittest discover -s tools/tests -v
 | `tools/tars.py` | The CLI. Copied into each memory repo, updated by `sync`. |
 | `tools/tests/` | The test suite. |
 | `.claude-plugin/` | Plugin and marketplace manifests. |
-| `extensions/` | The registry of capabilities that plug into a memory, and the rule for adding one. |
+| `extensions/` | The registry: every extension, its git URL, and what it needs to run. |
 
 ## Requirements
 

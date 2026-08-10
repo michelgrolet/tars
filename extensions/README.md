@@ -2,26 +2,56 @@
 
 An extension is a capability the agent gains: an MCP server, a skill pack, a dashboard, a guard.
 
-## Installing one, in any agent
+## What each one costs to run
 
-`.claude-plugin/marketplace.json` is the index. Every entry carries a name, a description and a git URL, so an agent that has never heard of Claude Code can read it and act on it:
+Half of these speak to something that has to exist before they are useful. That belongs in the index, not in a paragraph someone finds after installing:
 
 ```bash
-python3 -c "import json,urllib.request as u; \
-  [print(p['name'], '\t', p['source'].get('url', p['source']) if isinstance(p['source'],dict) else p['source']) \
-   for p in json.load(u.urlopen('https://raw.githubusercontent.com/michelgrolet/tars/main/.claude-plugin/marketplace.json'))['plugins']]"
+python3 tools/registry.py
 ```
 
-Then clone the one you want and follow its own `AGENTS.md` or `README.md`. An extension is responsible for saying how it is wired, because only it knows whether it needs a database, a token, or nothing.
+```
+tars           https://github.com/michelgrolet/tars
+               needs: nothing, it runs where your agent runs
+people-memory  https://github.com/michelgrolet/people-memory-mcp
+               needs: a postgres to point it at, local or hosted
+```
 
-On Claude Code the same index is a marketplace, so one command does the clone and the wiring:
+Three independent requirements, because they fail differently:
+
+| `requires` | What it means | What it costs you |
+|---|---|---|
+| `database` | It stores something durable | A local Postgres in Docker, or a free hosted project. Both work. |
+| `always_on` | It holds a session, a listener, or a schedule | A machine that does not sleep. A laptop will not do, and this is the only one that means a server. |
+| `credentials` | It speaks to an account that is yours | An OAuth grant or a token you obtain yourself. Nobody else can do it for you. |
+
+**A database is not a server.** Most extensions that need Postgres run perfectly against `docker run postgres` on the same laptop as the agent. The one requirement that genuinely means a VPS is `always_on`, and it is the rarest.
+
+## Installing one, in any agent
+
+`extensions/registry.json` is the index and the source of truth. Every entry carries a name, a description, a git URL and what it needs, so an agent that has never heard of Claude Code can read it and decide:
+
+```bash
+curl -s https://raw.githubusercontent.com/michelgrolet/tars/main/extensions/registry.json
+```
+
+Clone the one you want and follow its own `AGENTS.md` or `README.md`. An extension is responsible for saying how it is wired, because only it knows what it talks to.
+
+On Claude Code the same list is also a marketplace, so one command does the clone and the wiring:
 
 ```bash
 claude plugin marketplace add michelgrolet/tars
 claude plugin install people-memory@tars
 ```
 
-That is a shortcut, not the contract. The contract is the git URL.
+`.claude-plugin/marketplace.json` is generated from the registry, never edited by hand, and a test fails the build if the two drift. It carries the subset Claude Code understands: the CLI warns on fields it does not know, and a repo that warns on every validate run teaches people to ignore its own tooling.
+
+```bash
+python3 tools/registry.py --write     # after editing the registry
+python3 tools/registry.py --check     # what CI runs
+```
+
+That marketplace is a shortcut, not the contract. The contract is the git URL.
 
 ## Where an extension lives
 
@@ -38,8 +68,8 @@ The rule that decides it: **would this repo be worth reading on its own?** `peop
 
 1. The extension needs a git URL that clones without credentials, and a `README.md` or `AGENTS.md` at its root saying how to wire it. That is the whole requirement.
 2. If you also want it installable in one command on Claude Code, give it `.claude-plugin/plugin.json`: `name`, `version`, `description`, and whichever of `skills`, `mcpServers`, `hooks`, `agents` it provides. `claude plugin validate <path>` checks it.
-3. Add an entry to `.claude-plugin/marketplace.json` with `name`, `description`, `author`, `category`, `license`, `homepage` and `source`.
-4. `python3 -m unittest discover -s tools/tests`. `TestMarketplace` fails on a missing field, a duplicate name, a local source that is not on disk, a source kind Claude Code cannot resolve, or an extension indexed here and left out of the list below.
+3. Add an entry to `extensions/registry.json` with `name`, `description`, `repo`, `source`, `category`, `license`, `provides` and `requires`. Fill `requires` honestly: a `database` someone discovers after installing is a bad afternoon, and an `always_on` they discover after installing is a bad week.
+4. `python3 tools/registry.py --write`, then `python3 -m unittest discover -s tools/tests`. The suite fails on a missing field, a duplicate name, a local source that is not on disk, a source kind Claude Code cannot resolve, a marketplace that drifted from the registry, or an extension indexed and left out of the list below.
 5. Install it and read what actually loaded before claiming it works. `claude plugin details <name>@tars` reports the skills, the MCP servers and the tokens it costs on every session.
 
 ## Pinning
@@ -48,4 +78,4 @@ Entries track their default branch, so an update picks up improvements. Pin a `c
 
 ## Current extensions
 
-- **[people-memory](https://github.com/michelgrolet/people-memory-mcp)**, a private people graph. Six MCP tools (`search_people`, `get_person`, `remember_person`, `add_fact`, `connect_people`, `find_intro_path`) and six skills that record people during ordinary conversation. Postgres, self-hostable. MIT.
+- **[people-memory](https://github.com/michelgrolet/people-memory-mcp)**, a private people graph. Six MCP tools (`search_people`, `get_person`, `remember_person`, `add_fact`, `connect_people`, `find_intro_path`) and six skills that record people during ordinary conversation. Needs a Postgres, runs on your laptop against one in Docker. MIT.

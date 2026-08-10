@@ -1,0 +1,52 @@
+{
+  "comment": "The registry of TARS extensions, and the source of truth for .claude-plugin/marketplace.json. Neutral on purpose: an agent that has never heard of Claude Code reads this file, sees a git URL and a list of what each extension needs to run, and can act on both. Regenerate the marketplace with tools/registry.py --write.",
+  "marketplace": {
+    "name": "tars",
+    "description": "TARS and its extensions: a harness for personal agents, and the capabilities that plug into it.",
+    "owner": {
+      "name": "Michel Grolet",
+      "url": "https://github.com/michelgrolet"
+    }
+  },
+  "extensions": [
+    {
+      "name": "tars",
+      "description": "A harness for a personal agent: identity, law, memory and a self-extending skill library in one git repo, wired into every Claude Code and Codex session and updated without ever overwriting what you wrote.",
+      "repo": "https://github.com/michelgrolet/tars",
+      "source": "./",
+      "category": "productivity",
+      "license": "MIT",
+      "provides": {
+        "skills": 6,
+        "mcp_servers": []
+      },
+      "requires": {
+        "database": null,
+        "always_on": false,
+        "credentials": []
+      }
+    },
+    {
+      "name": "people-memory",
+      "description": "A private people graph that gives your agent durable memory of everyone you know. MCP tools to search, remember and connect people, plus skills that record them during ordinary conversation. Postgres behind it, self-hostable.",
+      "repo": "https://github.com/michelgrolet/people-memory-mcp",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/michelgrolet/people-memory-mcp.git"
+      },
+      "category": "productivity",
+      "license": "MIT",
+      "provides": {
+        "skills": 6,
+        "mcp_servers": [
+          "people-memory"
+        ]
+      },
+      "requires": {
+        "database": "postgres",
+        "always_on": false,
+        "credentials": []
+      }
+    }
+  ]
+}

@@ -83,5 +83,8 @@ jobs:
           print("ok:", plugin["name"], plugin["version"])
           PY
 
+      - name: The marketplace is what the registry projects
+        run: python3 tools/registry.py --check
+
       - name: The registry agrees with what is on disk
-        run: python3 -m unittest tools.tests.test_tars.TestMarketplace -v
+        run: python3 -m unittest tools.tests.test_tars.TestMarketplace tools.tests.test_tars.TestRegistry -v

@@ -9,6 +9,8 @@ Run: python3 -m unittest discover -s tools/tests -v
 
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import shutil
 import subprocess
@@ -442,6 +444,46 @@ class TestBootstrapDocs(unittest.TestCase):
         self.assertIn("github.com/michelgrolet/tars", head)
         self.assertLess(head.index("github.com/michelgrolet/tars"), head.index("claude plugin"),
                         "the Claude Code shortcut is listed above the git URL")
+
+
+class TestRegistry(unittest.TestCase):
+    """extensions/registry.json is the source of truth and the marketplace is a projection
+    of it. Two files saying the same thing drift the week nobody is looking, so the drift
+    is a build failure rather than a convention."""
+
+    def setUp(self) -> None:
+        sys.path.insert(0, str(ROOT / "tools"))
+        import registry  # noqa: PLC0415
+
+        self.registry = registry
+        self.data = registry.load()
+
+    def test_the_marketplace_is_exactly_what_the_registry_projects(self) -> None:
+        with contextlib.redirect_stdout(io.StringIO()):
+            drifted = self.registry.main(["--check"])
+        self.assertEqual(drifted, 0, "run: python3 tools/registry.py --write")
+
+    def test_every_extension_says_what_it_needs_to_run(self) -> None:
+        for ext in self.data["extensions"]:
+            req = ext["requires"]
+            self.assertIn("database", req, ext["name"])
+            self.assertIsInstance(req["always_on"], bool, ext["name"])
+            self.assertIsInstance(req["credentials"], list, ext["name"])
+            self.assertTrue(self.registry.needs(ext), ext["name"])
+
+    def test_an_extension_that_needs_nothing_says_so_in_words(self) -> None:
+        tars_entry = next(e for e in self.data["extensions"] if e["name"] == "tars")
+        self.assertIn("runs where your agent runs", self.registry.needs(tars_entry))
+
+    def test_a_hosted_extension_warns_that_a_laptop_will_not_do(self) -> None:
+        hosted = dict(requires={"database": None, "always_on": True, "credentials": []})
+        self.assertIn("stays awake", self.registry.needs(hosted))
+
+    def test_the_projection_drops_fields_claude_code_would_warn_about(self) -> None:
+        projected = self.registry.project(self.data)
+        for entry in projected["plugins"]:
+            self.assertNotIn("requires", entry)
+            self.assertNotIn("provides", entry)
 
 
 class TestMarketplace(unittest.TestCase):
