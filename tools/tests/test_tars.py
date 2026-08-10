@@ -374,5 +374,68 @@ class TestEndToEnd(TarsTestCase):
         self.assertEqual(payload["data"]["rules_checked"], len(tars.REQUIRED_RULES))
 
 
+class TestMarketplace(unittest.TestCase):
+    """The registry is the only thing standing between someone and code that runs with
+    their agent's permissions, so a malformed entry has to fail here rather than at install."""
+
+    REQUIRED = ("name", "description", "author", "category", "source", "homepage")
+    REMOTE_KINDS = ("url", "git-subdir", "github")
+
+    def setUp(self) -> None:
+        self.plugin = json.loads((ROOT / ".claude-plugin/plugin.json").read_text())
+        self.market = json.loads((ROOT / ".claude-plugin/marketplace.json").read_text())
+        self.entries = self.market["plugins"]
+
+    def test_every_entry_carries_the_fields_a_reader_needs(self) -> None:
+        for entry in self.entries:
+            for field in self.REQUIRED:
+                self.assertIn(field, entry, f"{entry.get('name', '?')} is missing {field}")
+
+    def test_names_are_unique(self) -> None:
+        names = [entry["name"] for entry in self.entries]
+        self.assertEqual(len(names), len(set(names)), f"duplicate plugin name in {names}")
+
+    def test_local_sources_are_on_disk_and_declare_themselves(self) -> None:
+        for entry in self.entries:
+            source = entry["source"]
+            if not isinstance(source, str):
+                continue
+            manifest = ROOT / source / ".claude-plugin/plugin.json"
+            self.assertTrue(manifest.is_file(), f"{entry['name']} points at {source}, no manifest there")
+            self.assertEqual(json.loads(manifest.read_text())["name"], entry["name"])
+
+    def test_remote_sources_use_a_shape_this_claude_code_resolves(self) -> None:
+        # 'git' is not implemented by the CLI and 'github' fails to clone: both were tested
+        # against a live install, and both fail with an error that reads like a permissions problem.
+        for entry in self.entries:
+            source = entry["source"]
+            if isinstance(source, str):
+                continue
+            self.assertIn(source["source"], ("url", "git-subdir"),
+                          f"{entry['name']} uses source kind {source['source']!r}")
+            self.assertTrue(source["url"].startswith("https://"), source["url"])
+
+    def test_the_marketplace_agrees_with_the_plugin_it_ships(self) -> None:
+        own = [entry for entry in self.entries if entry["name"] == self.plugin["name"]]
+        self.assertEqual(len(own), 1, "tars indexes itself exactly once")
+        self.assertEqual(own[0]["description"], self.plugin["description"])
+
+    def test_declared_skill_directories_hold_real_skills(self) -> None:
+        for declared in self.plugin["skills"]:
+            root = ROOT / declared
+            self.assertTrue(root.is_dir(), f"{declared} is declared and absent")
+            found = sorted(p for p in root.iterdir() if p.is_dir())
+            self.assertTrue(found, f"{declared} is empty")
+            for skill in found:
+                self.assertTrue((skill / "SKILL.md").is_file(), f"{skill.name} has no SKILL.md")
+
+    def test_the_extensions_directory_documents_the_rule(self) -> None:
+        readme = (ROOT / "extensions/README.md").read_text()
+        for entry in self.entries:
+            if entry["name"] == self.plugin["name"]:
+                continue
+            self.assertIn(entry["name"], readme, f"{entry['name']} is indexed and undocumented")
+
+
 if __name__ == "__main__":
     unittest.main()

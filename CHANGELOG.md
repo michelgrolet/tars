@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.0
+
+- The marketplace now indexes extensions, not only TARS itself. First one: `people-memory`, a private people graph with six MCP tools and six skills, installed with `claude plugin install people-memory@tars`.
+- `extensions/README.md` states where an extension lives: its own repo when it has a life of its own, in-tree when it is a skill pack with no code. `TestMarketplace` fails the build on a missing field, a duplicate name, a local source that is not on disk, or a source kind this Claude Code cannot resolve.
+- `/tars-extend` knows the marketplace by name instead of asking the agent to guess where a capability comes from.
+
 ## 1.0.0
 
 First release.

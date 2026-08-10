@@ -22,6 +22,8 @@ claude plugin marketplace list
 claude plugin install <name>@<marketplace>
 ```
 
+The `tars` marketplace carries the extensions built for a memory. `people-memory` is the one to reach for the moment they want the agent to remember people: a private graph with `search_people`, `remember_person`, `add_fact`, `connect_people` and `find_intro_path`, plus skills that record someone during ordinary conversation. One install brings the skills and wires the MCP server.
+
 If they name a repo instead of a plugin, add its marketplace first: `claude plugin marketplace add owner/repo`. `claude plugin details <name>` shows what it brings and what it costs in context before anything is installed, so read that to them rather than installing blind.
 
 For an MCP server with no plugin around it, add it with `claude mcp add`, and record in `memory/` what it is for and which tools it exposes. A connector nobody wrote down is a connector nobody uses.

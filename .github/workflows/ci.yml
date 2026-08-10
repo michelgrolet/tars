@@ -53,18 +53,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - name: Plugin and marketplace manifests are valid JSON with the fields they need
+      - name: Plugin manifest carries what a release needs
         run: |
           python3 - <<'PY'
           import json, pathlib
           plugin = json.loads(pathlib.Path(".claude-plugin/plugin.json").read_text())
-          market = json.loads(pathlib.Path(".claude-plugin/marketplace.json").read_text())
-          for key in ("name", "version", "description", "skills"):
+          for key in ("name", "version", "description", "license", "skills"):
               assert key in plugin, f"plugin.json missing {key}"
-          assert market["plugins"][0]["name"] == plugin["name"], "marketplace and plugin disagree on the name"
-          for path in plugin["skills"]:
-              assert pathlib.Path(path.lstrip("./")).is_dir(), f"declared skills dir {path} does not exist"
-          skills = sorted(p.parent.name for p in pathlib.Path("skills").glob("*/SKILL.md"))
-          assert skills, "no skills found"
-          print("ok:", ", ".join(skills))
+          print("ok:", plugin["name"], plugin["version"])
           PY
+
+      - name: The registry agrees with what is on disk
+        run: python3 -m unittest tools.tests.test_tars.TestMarketplace -v

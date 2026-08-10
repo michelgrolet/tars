@@ -84,6 +84,18 @@ There is a CLI. You are not meant to type it. The skills do, and the skills are 
 
 `/tars-extend` is the one that keeps it growing: it installs Claude Code plugins and MCP servers, writes new skills into *your* repo so they are versioned with your memory, and adds the trigger to the threshold so the skill actually fires instead of sitting unread.
 
+## Extensions
+
+The same marketplace carries capabilities that plug into a memory. One install brings the skills and wires the MCP server.
+
+```bash
+claude plugin install people-memory@tars
+```
+
+**[people-memory](https://github.com/michelgrolet/people-memory-mcp)** gives the agent a private graph of everyone you know: `search_people`, `remember_person`, `add_fact`, `connect_people`, `find_intro_path`, plus skills that record people during ordinary conversation instead of asking you to fill in a CRM. Postgres, self-hostable, MIT.
+
+`claude plugin details <name>@tars` tells you what an extension actually loads and what it costs in tokens on every session, before you install it. An extension runs with your agent's permissions, so read that first. [`extensions/README.md`](extensions/README.md) has the rule for adding one.
+
 ## The CLI underneath
 
 ```
@@ -114,7 +126,7 @@ It also states what it does not protect against: anyone with shell access, anoth
 python3 -m unittest discover -s tools/tests -v
 ```
 
-34 tests, no dependencies. CI runs them on Linux and macOS against Python 3.10 and 3.13, plus a smoke job that builds a repo from scratch in a sandboxed `$HOME`, asserts the wiring, and checks that the pre-commit hook actually refuses a threshold with a rule removed.
+41 tests, no dependencies. CI runs them on Linux and macOS against Python 3.10 and 3.13, plus a smoke job that builds a repo from scratch in a sandboxed `$HOME`, asserts the wiring, and checks that the pre-commit hook actually refuses a threshold with a rule removed.
 
 ## Layout
 
@@ -125,6 +137,7 @@ python3 -m unittest discover -s tools/tests -v
 | `tools/tars.py` | The CLI. Copied into each memory repo, updated by `sync`. |
 | `tools/tests/` | The test suite. |
 | `.claude-plugin/` | Plugin and marketplace manifests. |
+| `extensions/` | The registry of capabilities that plug into a memory, and the rule for adding one. |
 
 ## Requirements
 
