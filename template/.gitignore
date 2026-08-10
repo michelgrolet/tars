@@ -3,3 +3,22 @@ __pycache__/
 .DS_Store
 .claude/settings.local.json
 *.upstream
+
+# Credentials. This repo is pushed to a remote by an agent that never asks permission to
+# commit, so anything matching these must never become tracked in the first place. The
+# secret scanner in `tars validate` is the second line; this is the first.
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+id_rsa*
+id_ed25519*
+credentials.json
+client_secret*.json
+token.json
+.netrc
+.npmrc
+secrets/

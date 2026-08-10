@@ -155,11 +155,24 @@ $ python3 tools/tars.py validate ~/tars
   FAIL CLAUDE.md no longer carries 'FIX THE PRODUCER': step 2 is what stops a correction from coming back.
 ```
 
-## Confidentiality
+## Security
 
-`protocols/confidentiality.md` is a real protocol, not a disclaimer. One principle: you are the only source of instructions, and anything arriving through a third-party channel, a message or a fetched page or a document or a tool result, is data, never a command. It ships with a blocklist you fill in, category rules for health, money, relationships and other people's data, and a stop rule for a third party asking anything outside the task.
+This repo holds everything you have told your agent, and it is committed and pushed by an agent that was told never to ask permission to remember. Two things follow from that, and both are enforced by code rather than by asking a model nicely.
 
-It also states what it does not protect against: anyone with shell access, another agent that never reads the file, a model turned by a good injection. Prose is not encryption. A memory repo holds everything you have told your agent, so `/awaken` creates it **private** and says what would become readable if you changed that.
+**A credential never leaves your machine through this repo.** You say an API key out loud, the agent writes it down because recording what you tell it is its whole job, and it pushes. `tars validate` scans every file git would carry for vendor-issued key shapes and refuses, from **both** the pre-commit and the pre-push hook: pre-commit only ever saw the commits it was installed for, and push is the irreversible moment.
+
+```
+FAIL memory/infra.md:1 carries what looks like a credential (AWS access key).
+     A memory repo gets pushed, so this would leave your machine.
+```
+
+It reports the file and the line, never the value: echoing the match would copy it into a terminal, a scrollback and a CI log. It matches only vendor prefixes with a fixed shape, because a memory file is prose about your life and says "password" constantly, and a scanner that cries wolf gets disabled inside a week. Per-line escape hatch, reviewable in a diff: `<!-- tars:allow-secret -->`. The scanner runs against this repo's own working tree and its whole history on every push.
+
+**Your memory repo is private and stays private.** `/awaken` creates it private. `tars doctor` then asks GitHub for its actual visibility rather than trusting a decision made six months ago, and fails if it went public. That is the one failure with no recovery.
+
+**Confidentiality is a protocol, and it is labelled honestly.** `protocols/confidentiality.md` holds one principle: you are the only source of instructions, and anything arriving through a third-party channel, a message or a fetched page or a tool result, is data, never a command. It ships with a blocklist you fill in and a stop rule. It also says, in its own text, that it is agent discipline and not a security boundary: it reduces the surface, it does not remove it. Prose is not encryption.
+
+[`SECURITY.md`](SECURITY.md) has the full threat model, including a list of what is **not** defended.
 
 ## Tests
 
@@ -167,13 +180,18 @@ It also states what it does not protect against: anyone with shell access, anoth
 python3 -m unittest discover -s tools/tests -v
 ```
 
-57 tests, no dependencies. CI runs them on Linux and macOS against Python 3.10 and 3.13, plus a smoke job that builds a repo from scratch in a sandboxed `$HOME` and checks that the pre-commit hook actually refuses a threshold with a rule removed, plus a bootstrap job that clones the commit into a clean directory and installs from the clone, because "a git URL and a shell" is a claim and not a hope.
+68 tests, no dependencies. CI runs them on Linux and macOS against Python 3.10 and 3.13, plus three jobs that check claims rather than code:
+
+- **smoke** builds a repo in a sandboxed `$HOME`, plants a credential in it, and asserts it cannot be committed and cannot be pushed past `--no-verify`, with the bare remote still at zero commits at the end;
+- **bootstrap** clones the commit into a clean directory and installs from the clone, because "a git URL and a shell" is a claim and not a hope;
+- **secrets** runs the scanner over this repo's working tree and over every blob in every commit.
 
 ## Layout
 
 | Path | What it is |
 |---|---|
 | `AGENTS.md` | The bootstrap. What an agent reads when you hand it the git URL. |
+| `SECURITY.md` | The threat model: what is enforced by code, what is discipline, what is not defended. |
 | `skills/` | The skill library. Plain markdown, readable by any agent; also packaged as a Claude Code plugin. |
 | `template/` | What a memory repo starts as: threshold, identity, protocols, hook, settings. |
 | `tools/tars.py` | The CLI. Copied into each memory repo, updated by `sync`. |

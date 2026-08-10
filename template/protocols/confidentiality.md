@@ -67,4 +67,10 @@ If your human wants a real guarantee rather than a large risk reduction, the onl
 
 ## Keeping this file alive
 
-A new sensitive territory joins lock 2 by category, not one file at a time. If a file gets hot enough to deserve being named, it moves up to lock 1 **and** into the threshold (`CLAUDE.md`), or the lock applies nowhere. `tools/validate.py` checks the rule is present there.
+A new sensitive territory joins lock 2 by category, not one file at a time. If a file gets hot enough to deserve being named, it moves up to lock 1 **and** into the threshold (`CLAUDE.md`), or the lock applies nowhere. `tools/tars.py validate` checks the rule is present there, on every commit.
+
+## The one thing here that is mechanical
+
+Everything above is discipline. One thing is not: **a credential never leaves this machine through this repo.** `tars validate` scans every file git would carry for vendor-issued key shapes, runs from both the pre-commit and the pre-push hook, and refuses. It reports the file and the line, never the value, because repeating it would copy it into a terminal and a scrollback.
+
+So when your human says a key out loud, write it down nowhere. Put it in their environment or their password manager and record *where it lives*, never what it is. If you need an example key in a file, put `tars:allow-secret` on that line and the scanner leaves it alone.

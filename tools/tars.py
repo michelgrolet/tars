@@ -45,6 +45,7 @@ TEMPLATED = (
     "memory/README.md",
     "journal/README.md",
     ".githooks/pre-commit",
+    ".githooks/pre-push",
     ".claude/settings.json",
     ".gitignore",
     "tools/tars.py",
@@ -311,9 +312,10 @@ def cmd_init(args: argparse.Namespace) -> Result:
         agents.symlink_to("CLAUDE.md")
         result.actions.append("AGENTS.md -> CLAUDE.md")
 
-    hook = repo / ".githooks" / "pre-commit"
-    if hook.is_file():
-        hook.chmod(0o755)
+    for name in ("pre-commit", "pre-push"):
+        hook = repo / ".githooks" / name
+        if hook.is_file():
+            hook.chmod(0o755)
     tool = repo / "tools" / "tars.py"
     if tool.is_file():
         tool.chmod(0o755)
@@ -338,6 +340,84 @@ def cmd_init(args: argparse.Namespace) -> Result:
 
     result.data = {"repo": str(repo), "tars_version": manifest["tars_version"]}
     return result
+
+
+# ---------------------------------------------------------------------------- secrets
+
+# An agent writes down what its human says, and humans say API keys out loud. The repo is
+# then committed and pushed by an agent that was told never to ask permission to remember.
+# That is a straight line from "here is my key" to a git remote, and this is the only thing
+# standing across it.
+#
+# Every pattern here is a vendor-issued prefix with a fixed shape. Generic heuristics
+# (password=, token=, a long base64 run) were tried and dropped: a memory file is prose
+# about a person's life, it says "password" constantly, and a scanner that cries wolf on
+# every commit gets disabled within a week. A disabled scanner is worse than none, because
+# the human believes it is watching.
+SECRET_PATTERNS = (
+    ("AWS access key", re.compile(r"\bAKIA[0-9A-Z]{16}\b")),
+    ("Anthropic key", re.compile(r"\bsk-ant-[A-Za-z0-9_\-]{20,}")),
+    ("OpenAI key", re.compile(r"\bsk-(?:proj-)?[A-Za-z0-9]{32,}\b")),
+    ("GitHub token", re.compile(r"\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{36,}\b")),
+    ("GitHub fine-grained token", re.compile(r"\bgithub_pat_[A-Za-z0-9_]{60,}\b")),
+    ("GitLab token", re.compile(r"\bglpat-[A-Za-z0-9_\-]{20,}\b")),
+    ("Google API key", re.compile(r"\bAIza[0-9A-Za-z_\-]{35}\b")),
+    ("Slack token", re.compile(r"\bxox[abprs]-[0-9A-Za-z\-]{10,}\b")),
+    ("Stripe live key", re.compile(r"\b[sr]k_live_[0-9A-Za-z]{20,}\b")),
+    ("SendGrid key", re.compile(r"\bSG\.[A-Za-z0-9_\-]{20,}\.[A-Za-z0-9_\-]{20,}\b")),
+    ("npm token", re.compile(r"\bnpm_[A-Za-z0-9]{36}\b")),
+    ("DigitalOcean token", re.compile(r"\bdop_v1_[a-f0-9]{64}\b")),
+    ("Shopify token", re.compile(r"\bshpat_[a-fA-F0-9]{32}\b")),
+    ("private key block", re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH |PGP )?PRIVATE KEY-----")),
+    ("connection string with a password",
+     re.compile(r"\b(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis|amqp)://[^\s:/@]+:[^\s@/]{6,}@")),
+)
+
+# A line that has been looked at and judged safe. The pragma is the whole escape hatch:
+# reviewable in a diff, and it names the line rather than switching the scanner off.
+SECRET_PRAGMA = "tars:allow-secret"
+
+# Binaries and lockfiles are noise here, and a repo full of them is not a memory repo.
+SKIP_SUFFIXES = (".png", ".jpg", ".jpeg", ".gif", ".pdf", ".zip", ".gz", ".woff", ".woff2",
+                 ".ico", ".mp3", ".mp4", ".sqlite", ".db")
+
+
+def scannable(repo: Path) -> list[Path]:
+    """Everything git would carry, including files staged but never committed.
+
+    Untracked-and-ignored files are excluded on purpose: a .env the human deliberately
+    gitignored is doing exactly what it should, and flagging it teaches them to ignore us.
+    """
+    listed = git(repo, "ls-files", "-co", "--exclude-standard")
+    if listed.returncode != 0:
+        return [p for p in walk(repo) if p.suffix not in SKIP_SUFFIXES]
+    return [repo / name for name in listed.stdout.splitlines()
+            if name and not name.endswith(SKIP_SUFFIXES)]
+
+
+def scan_secrets(repo: Path, files: list[Path] | None = None) -> list[tuple[str, int, str]]:
+    """Return (path, line number, what it looks like). Never the secret itself.
+
+    Printing the match would copy it into a terminal, a CI log and a scrollback buffer,
+    which is three more places it now lives.
+    """
+    findings = []
+    for path in (scannable(repo) if files is None else files):
+        if not path.is_file() or path.is_symlink():
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        for number, line in enumerate(text.splitlines(), start=1):
+            if SECRET_PRAGMA in line:
+                continue
+            for label, pattern in SECRET_PATTERNS:
+                if pattern.search(line):
+                    rel = path.relative_to(repo).as_posix() if path.is_relative_to(repo) else str(path)
+                    findings.append((rel, number, label))
+                    break
+    return sorted(findings)
 
 
 # ---------------------------------------------------------------------------- validate
@@ -393,10 +473,48 @@ def cmd_validate(args: argparse.Namespace) -> Result:
             "Something that should be a trigger has become a content. Run /consolidate."
         )
 
-    result.data = {"threshold_lines": lines, "rules_checked": len(REQUIRED_RULES)}
+    scanned = scannable(repo)
+    secrets = scan_secrets(repo, scanned)
+    for rel, number, label in secrets:
+        result.fail(
+            f"{rel}:{number} carries what looks like a credential ({label}). A memory repo "
+            f"gets pushed, so this would leave your machine. Move it to your environment or a "
+            f"password manager. If it is an example, put {SECRET_PRAGMA} on that line."
+        )
+
+    result.data = {
+        "threshold_lines": lines,
+        "rules_checked": len(REQUIRED_RULES),
+        "files_scanned": len(scanned),
+        "secrets_found": len(secrets),
+    }
     if result.ok and not args.json:
-        print(f"  ok   {len(REQUIRED_RULES)} rules hot, {len(REQUIRED_FILES)} files present")
+        print(f"  ok   {len(REQUIRED_RULES)} rules hot, {len(REQUIRED_FILES)} files present, "
+              f"{result.data['files_scanned']} files clean of credentials")
     return result
+
+
+def remote_visibility(remote: str) -> str:
+    """public, private, or unknown.
+
+    A memory repo that went public is the one failure with no recovery: by the time anyone
+    notices, it has been cloned and indexed. So this asks the forge rather than trusting
+    that it was created private six months ago. Unknown when gh is absent or the host is
+    not GitHub, and unknown never fails the check: guessing 'private' would be a lie, and
+    guessing 'public' would cry wolf on every self-hosted remote.
+    """
+    if "github.com" not in remote:
+        return "unknown"
+    if not shutil.which("gh"):
+        return "unknown"
+    done = subprocess.run(["gh", "repo", "view", remote, "--json", "isPrivate"],
+                          capture_output=True, text=True, check=False, timeout=15)
+    if done.returncode != 0:
+        return "unknown"
+    try:
+        return "private" if json.loads(done.stdout)["isPrivate"] else "public"
+    except (json.JSONDecodeError, KeyError):
+        return "unknown"
 
 
 # ---------------------------------------------------------------------------- doctor
@@ -442,6 +560,20 @@ def cmd_doctor(args: argparse.Namespace) -> Result:
     result.data["remote"] = remote
     if not remote:
         result.warnings.append("no git remote — the memory only exists on this machine")
+    else:
+        visibility = remote_visibility(remote)
+        result.data["remote_visibility"] = visibility
+        if visibility == "public":
+            result.fail(
+                f"{remote} is PUBLIC. This repo holds everything its human has told the agent. "
+                "Make it private now: gh repo edit --visibility private --accept-visibility-change-consequences. "
+                "Anything already pushed should be treated as disclosed."
+            )
+
+    secrets = scan_secrets(repo)
+    result.data["secrets_found"] = len(secrets)
+    for rel, number, label in secrets:
+        result.fail(f"{rel}:{number} looks like a {label} and this repo gets pushed")
 
     dirty = git(repo, "status", "--porcelain").stdout.strip()
     result.data["uncommitted_files"] = len(dirty.splitlines()) if dirty else 0

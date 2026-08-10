@@ -376,6 +376,108 @@ class TestEndToEnd(TarsTestCase):
         self.assertEqual(payload["data"]["rules_checked"], len(tars.REQUIRED_RULES))
 
 
+class TestSecrets(TarsTestCase):
+    """The straight line this closes: the human says a key out loud, the agent writes it into
+    memory because that is its job, the agent commits and pushes because it was told never to
+    ask permission to remember. Nothing else in the design interrupts that."""
+
+    # Fake, and pragma'd so the scanner does not flag its own test fixtures.
+    AWS = "AKIA" + "IOSFODNN7EXAMPLE"  # tars:allow-secret
+    GITHUB = "ghp_" + "a" * 36  # tars:allow-secret
+    DSN = "postgres://tars:hunter2hunter2@db.example.com:5432/memory"  # tars:allow-secret
+
+    def validate(self) -> tars.Result:
+        return tars.cmd_validate(Namespace(path=str(self.repo), json=True))
+
+    def write(self, rel: str, body: str) -> Path:
+        target = self.repo / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(body, encoding="utf-8")
+        return target
+
+    def test_a_clean_repo_passes(self) -> None:
+        self.make_repo()
+        result = self.validate()
+        self.assertTrue(result.ok, result.errors)
+        self.assertEqual(result.data["secrets_found"], 0)
+        self.assertGreater(result.data["files_scanned"], 0)
+
+    def test_a_key_pasted_into_a_memory_file_blocks_the_commit(self) -> None:
+        self.make_repo()
+        self.write("memory/work.md", f"He gave me the deploy key {self.AWS} for the staging box.\n")
+        result = self.validate()
+        self.assertFalse(result.ok)
+        self.assertIn("AWS access key", " ".join(result.errors))
+        self.assertIn("memory/work.md:1", " ".join(result.errors))
+
+    def test_the_error_never_repeats_the_secret_back(self) -> None:
+        """Printing it would copy it into a terminal, a scrollback and a CI log."""
+        self.make_repo()
+        self.write("memory/work.md", f"token: {self.GITHUB}\n")
+        result = self.validate()
+        self.assertFalse(result.ok)
+        self.assertNotIn(self.GITHUB, " ".join(result.errors))
+
+    def test_a_connection_string_with_a_password_counts(self) -> None:
+        self.make_repo()
+        self.write("memory/infra.md", f"The base is at {self.DSN}\n")
+        self.assertFalse(self.validate().ok)
+
+    def test_the_pragma_is_the_escape_hatch_and_it_is_per_line(self) -> None:
+        self.make_repo()
+        self.write("memory/work.md",
+                   f"An example key looks like {self.AWS}  <!-- {tars.SECRET_PRAGMA} -->\n"
+                   f"and this one is real: {self.GITHUB}\n")
+        result = self.validate()
+        self.assertFalse(result.ok, "line 2 should still be caught")
+        joined = " ".join(result.errors)
+        self.assertIn("memory/work.md:2", joined)
+        self.assertNotIn("memory/work.md:1", joined)
+
+    def test_a_gitignored_env_file_is_not_flagged(self) -> None:
+        """It is already doing the right thing. Flagging it teaches people to ignore us."""
+        self.make_repo()
+        self.write(".env", f"AWS_ACCESS_KEY_ID={self.AWS}\n")
+        result = self.validate()
+        self.assertTrue(result.ok, result.errors)
+
+    def test_the_shipped_gitignore_covers_the_usual_credential_files(self) -> None:
+        self.make_repo()
+        ignored = (self.repo / ".gitignore").read_text()
+        for pattern in (".env", "*.pem", "*.key", "id_rsa*", "credentials.json", ".netrc"):
+            self.assertIn(pattern, ignored)
+
+    def test_prose_about_passwords_does_not_trip_it(self) -> None:
+        """A memory file is prose about a life. It says 'password' constantly, and a scanner
+        that cries wolf gets disabled within the week."""
+        self.make_repo()
+        self.write("memory/creator.md",
+                   "He keeps his passwords in 1Password and hates password rotation policies.\n"
+                   "The wifi password at his parents' place is written on the fridge.\n"
+                   "api_key = os.environ['SERVICE_TOKEN']\n"
+                   "Bearer tokens expire after an hour here.\n")
+        self.assertTrue(self.validate().ok)
+
+    def test_an_unreadable_remote_is_unknown_rather_than_a_guess(self) -> None:
+        self.assertEqual(tars.remote_visibility("git@gitlab.internal:me/memory.git"), "unknown")
+        self.assertEqual(tars.remote_visibility(""), "unknown")
+
+    def test_both_hooks_are_installed_and_executable(self) -> None:
+        """pre-commit only ever saw the commits it was installed for. pre-push is the last
+        check before the one moment that cannot be walked back."""
+        self.make_repo()
+        for name in ("pre-commit", "pre-push"):
+            hook = self.repo / ".githooks" / name
+            self.assertTrue(hook.is_file(), f"{name} missing")
+            self.assertTrue(hook.stat().st_mode & 0o111, f"{name} not executable")
+            self.assertIn("tars.py", hook.read_text())
+
+    def test_this_repo_carries_no_credentials_of_its_own(self) -> None:
+        """The scanner runs against its own source. A security tool that never eats its own
+        cooking is a security tool nobody should trust."""
+        self.assertEqual(tars.scan_secrets(ROOT), [])
+
+
 class TestDiscovery(TarsTestCase):
     """An agent handed nothing but a git URL does not know where the memory lives.
     Everything here exists so it never has to ask."""

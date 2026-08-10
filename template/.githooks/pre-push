@@ -1,0 +1,9 @@
+#!/bin/sh
+# pre-commit is the first line, and it only ever saw the commits it was installed for.
+# A repo that existed before this hook, or one whose hooks were bypassed once with
+# --no-verify, still has whatever it has. This is the last check before anything leaves
+# the machine, which is the only moment that is actually irreversible.
+set -eu
+
+repo_root=$(git rev-parse --show-toplevel)
+python3 "$repo_root/tools/tars.py" validate "$repo_root" >/dev/null

@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.4.0
+
+Security. A memory repo is written by an agent that never asks permission to commit, and pushed to a remote. Two failures follow from that, and both are now enforced by code rather than by asking a model nicely.
+
+- **A credential cannot leave the machine through the repo.** `tars validate` scans every file git would carry for vendor-issued key shapes and refuses, from both the pre-commit and the new pre-push hook. It reports the file and the line, never the value. Only fixed vendor prefixes, because a scanner that cries wolf on prose gets disabled inside a week. Per-line escape hatch: `tars:allow-secret`.
+- **A public memory repo fails `tars doctor`.** It asks the forge for the repo's real visibility instead of trusting a decision made months ago. `unknown` when the host is not GitHub, and `unknown` never fails.
+- The shipped `.gitignore` keeps `.env`, keys, certificates and `credentials.json` from ever being tracked.
+- [`SECURITY.md`](SECURITY.md): the threat model, what is enforced by code, what is discipline, and an explicit list of what is not defended.
+- CI: the smoke job plants a credential and asserts it survives neither the commit nor a `--no-verify` push; a new `secrets` job runs the scanner over this repo's working tree and every blob in its history.
+
 ## 1.3.0
 
 - A host is suggested, never required. The bootstrap mentions once what a machine that stays awake would add and then drops it; `/tars-extend` raises it only when an extension actually needs one, with the laptop-only alternative in the same breath. A test fails the build the day TARS's own `requires` stops being empty.
