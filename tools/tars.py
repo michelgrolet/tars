@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""tars — create and maintain a persistent agent's memory repo.
+"""tars — create and maintain the repo a personal agent lives in.
 
 Four commands, all idempotent, all with --json for an agent to read:
 

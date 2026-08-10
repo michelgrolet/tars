@@ -1,6 +1,6 @@
 ---
 name: awaken
-description: Create a persistent memory for this agent. Interviews the human, builds their memory repo, wires it into every Claude Code and Codex session, and writes the identity and memory files that make the agent someone. Run once per human. Use when they say awaken, set up TARS, give you a memory, make you remember me, or when a threshold still shows {{AGENT_NAME}} placeholders.
+description: Turn this agent into someone's personal agent. Interviews the human, builds the repo the agent will live in, wires it into every Claude Code and Codex session, and writes the identity, law and memory files that make it a continuity rather than a session. Run once per human. Use when they say awaken, set up TARS, give you a memory, make you remember me, or when a threshold still shows {{AGENT_NAME}} placeholders.
 ---
 
 # /awaken

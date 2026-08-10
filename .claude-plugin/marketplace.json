@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "tars",
-  "description": "TARS and its extensions: persistent memory for coding agents, and the capabilities that plug into it.",
+  "description": "TARS and its extensions: a harness for personal agents, and the capabilities that plug into it.",
   "owner": {
     "name": "Michel Grolet",
     "url": "https://github.com/michelgrolet"
@@ -9,7 +9,7 @@
   "plugins": [
     {
       "name": "tars",
-      "description": "Give your coding agent a memory it writes itself. Creates a git-backed identity, memory and protocol repo, wires it into every Claude Code and Codex session, and keeps it updated without ever overwriting what you wrote.",
+      "description": "A harness for a personal agent: identity, law, memory and a self-extending skill library in one git repo, wired into every Claude Code and Codex session and updated without ever overwriting what you wrote.",
       "author": {
         "name": "Michel Grolet"
       },

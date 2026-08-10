@@ -1,6 +1,8 @@
 # TARS
 
-**Persistent memory for coding agents.** Your agent gets a git repo it writes to itself: who you are, how you want to be worked with, what it learned last week. Every Claude Code and Codex session on the machine wakes up with it.
+**A harness for a personal agent.** One git repo holding who your agent is, the law it runs on every turn, what it has learned about you, and the skills it extends itself with. Every Claude Code and Codex session on the machine wakes up inside it.
+
+Memory is one of the four. The part that makes the rest work is that only one file loads on every wake.
 
 No server, no database, no API key. Markdown files and git.
 
@@ -36,11 +38,13 @@ claude plugin install tars@tars
 Restart, then `/awaken`. Same result, with the skills registered as slash commands.
 </details>
 
-## The problem this solves
+## What a personal agent needs
 
-Agent memory features append facts to a pile and inject the pile. Past a few hundred entries the useful fact competes with three hundred irrelevant ones and loses. Quality degrades exactly as the memory becomes worth having.
+A coding agent is given a task and forgets you when it ends. A personal agent is the same model with four things around it: an identity it keeps, a law it applies on every turn, a memory of you it maintains, and a way to grow without you editing config. Each of those is a file that has to be loaded at the right moment, and the whole design problem is that they compete for the same budget.
 
-TARS starts from the opposite constraint. An agent is bounded not by what it knows but by what it looks at simultaneously. So **one file loads on every wake**: the threshold. It holds the law, the rules that apply on every turn, and a router: one line per file saying *when to open it*. Everything else stays cold until a task reaches for it.
+Every memory feature on the market solves that by appending facts to a pile and injecting the pile. Past a few hundred entries the useful fact competes with three hundred irrelevant ones and loses. Quality degrades exactly as the memory becomes worth having.
+
+TARS starts from the opposite constraint. An agent is bounded by what it looks at simultaneously, not by what it knows. So **one file loads on every wake**: the threshold. It holds the law, the rules that apply on every turn, and a router: one line per file saying *when to open it*. Everything else stays cold until a task reaches for it.
 
 ```
 CLAUDE.md          hot   ~125 lines, every session
