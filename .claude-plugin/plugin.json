@@ -1,0 +1,15 @@
+{
+  "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
+  "name": "tars",
+  "version": "1.0.0",
+  "description": "Give your coding agent a memory it writes itself. Creates a git-backed identity, memory and protocol repo, wires it into every Claude Code and Codex session, and keeps it updated without ever overwriting what you wrote.",
+  "author": {
+    "name": "Michel Grolet",
+    "url": "https://github.com/michelgrolet"
+  },
+  "homepage": "https://github.com/michelgrolet/tars",
+  "repository": "https://github.com/michelgrolet/tars",
+  "license": "MIT",
+  "keywords": ["memory", "persistence", "agent", "identity", "codex"],
+  "skills": ["./skills"]
+}
