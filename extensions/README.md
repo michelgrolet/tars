@@ -25,7 +25,23 @@ Three independent requirements, because they fail differently:
 | `always_on` | It holds a session, a listener, or a schedule | A machine that does not sleep. A laptop will not do, and this is the only one that means a server. |
 | `credentials` | It speaks to an account that is yours | An OAuth grant or a token you obtain yourself. Nobody else can do it for you. |
 
-**A database is not a server.** Most extensions that need Postgres run perfectly against `docker run postgres` on the same laptop as the agent. The one requirement that genuinely means a VPS is `always_on`, and it is the rarest.
+**A database is not a server.** Most extensions that need Postgres run perfectly against `docker run postgres` on the same laptop as the agent. The one requirement that genuinely means a machine somewhere else is `always_on`, and it is the rarest.
+
+## When a host is worth it
+
+**TARS never needs one.** The harness is markdown and git on your own disk, and it stays that way. Nothing below is a prerequisite for anything above.
+
+A host earns its place the day one of these is true:
+
+- an extension holds a **session** that dies with your laptop: a linked messaging account, a webhook listener, an inbox watcher;
+- you want something to run **while you are asleep**: a morning digest, a nightly consolidation, a scheduled `/tars-update`;
+- you want the same memory reachable from **more than one machine**, without one of them having to be awake.
+
+A host means whatever does not sleep: a five-dollar VPS, a Raspberry Pi on a shelf, an old laptop with the lid open. The agent is the same agent, the repo is the same repo, cloned twice and pushed to the same remote.
+
+**Suggest it when the reason appears, never at install.** An agent that opens with "first, rent a server" has lost most of the people it was talking to. An agent that says "this one needs a machine that stays awake, here is what that means, and here is the version that runs on your laptop instead" has kept them.
+
+Extensions that share the same `database` value can point at the same instance: one Postgres, several schemas, one connection string in your environment. That is why the field names the engine rather than a service.
 
 ## Installing one, in any agent
 
@@ -63,6 +79,10 @@ That marketplace is a shortcut, not the contract. The contract is the git URL.
 | Is a skill pack with no code of its own, useful only next to TARS | This directory | `"./extensions/<name>"` |
 
 The rule that decides it: **would this repo be worth reading on its own?** `people-memory` is a Postgres product with a dashboard and a test suite. Vendoring it here would bury it and force its releases to travel through TARS. A three-file skill pack for a niche workflow has no such life, and a separate repo for it is a repo nobody stars and nobody updates.
+
+**A shared database is not a reason to share a repo.** Several extensions can point at the same Postgres and still ship separately: a people graph and a location history hold different data, break differently, and interest different people. One repo each, one schema each, one connection string in the environment. The moment two extensions live in one repo, the smaller one's releases wait on the larger one's, and nobody can adopt one without the other.
+
+The exception is an extension that is **useless alone**: a dashboard over another extension's schema, or a migration tool that only means something next to it. That belongs in the repo it reads, as a directory, indexed with `git-subdir` if it deserves its own entry at all.
 
 ## Adding one
 

@@ -2,6 +2,8 @@
 
 ## 1.3.0
 
+- A host is suggested, never required. The bootstrap mentions once what a machine that stays awake would add and then drops it; `/tars-extend` raises it only when an extension actually needs one, with the laptop-only alternative in the same breath. A test fails the build the day TARS's own `requires` stops being empty.
+- One extension per repo, even when several share a database: a people graph and a location history hold different data and break differently, and a shared repo makes the smaller one's releases wait on the larger one's.
 - `extensions/registry.json` is the index and the source of truth: a git URL per extension, plus what it needs before it is any use. `tools/registry.py` projects it into `.claude-plugin/marketplace.json`, and a test fails the build when the two drift.
 - Requirements are three independent fields, because they fail differently. `database` is a Docker container on the same laptop. `credentials` is an OAuth grant nobody can obtain for you. `always_on` is the only one that means a server.
 

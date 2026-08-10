@@ -17,7 +17,14 @@ They want the agent to be able to do something it cannot do yet. Three shapes, a
 
 ## Installing something that exists
 
-The extensions built for a memory are indexed in `extensions/README.md` upstream, each with a git URL. `people-memory` is the one to reach for the moment they want the agent to remember people: a private graph with `search_people`, `remember_person`, `add_fact`, `connect_people` and `find_intro_path`, plus skills that record someone during ordinary conversation.
+The extensions built for a memory are indexed upstream, each with a git URL and what it needs before it is any use:
+
+```bash
+TARS_SRC="${CLAUDE_PLUGIN_ROOT:-$HOME/.tars/src}"
+python3 "$TARS_SRC/tools/registry.py"
+```
+
+`people-memory` is the one to reach for the moment they want the agent to remember people: a private graph with `search_people`, `remember_person`, `add_fact`, `connect_people` and `find_intro_path`, plus skills that record someone during ordinary conversation.
 
 ```bash
 claude plugin install people-memory@tars     # Claude Code, one command
@@ -28,6 +35,18 @@ Anywhere else, clone the extension's repo and follow its own `AGENTS.md` or `REA
 `claude plugin details <name>` shows what a plugin brings and what it costs in context before anything is installed, so read that to them rather than installing blind.
 
 **Two things before installing anything.** Say who wrote it and what it will be able to reach. A plugin runs with the agent's permissions, so "it is on a marketplace" is not a safety statement. A restart is what applies it: say that once, at the end, not as a running commentary.
+
+### When the extension needs a database
+
+Set one up for them rather than handing back a task. `docker run -d --name tars-pg -e POSTGRES_PASSWORD=… -p 5432:5432 postgres` on their own machine is the default answer, and it is enough for everything in the registry. Offer a hosted one only if they say they want the data reachable from elsewhere. Extensions that name the same engine share one instance, so check what is already running before starting a second.
+
+### When the extension needs a host that stays awake
+
+Only for `always_on`: a linked messaging session, a listener, a schedule. Say it in one line, at that moment, and lead with what still works without it:
+
+> This one holds a session that dies when your laptop sleeps, so it wants a machine that stays awake: a small VPS, a Raspberry Pi, an old laptop with the lid open. Everything else in TARS runs fine on this machine. Want me to set that up, or skip this extension for now?
+
+**Never make it a prerequisite for TARS itself, and never open with it.** The harness is markdown and git on their own disk. An agent whose first move is "rent a server" loses the person it was talking to. If they say yes, do the whole thing: provision, clone the repo, install, run `tars doctor` on the far side, and report once it answers.
 
 ## Writing a new skill
 

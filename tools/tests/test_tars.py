@@ -471,6 +471,14 @@ class TestRegistry(unittest.TestCase):
             self.assertIsInstance(req["credentials"], list, ext["name"])
             self.assertTrue(self.registry.needs(ext), ext["name"])
 
+    def test_the_harness_itself_requires_nothing(self) -> None:
+        """The whole promise is markdown and git on your own disk. The day TARS needs a
+        database, a host or a credential, it has become someone else's product."""
+        req = next(e for e in self.data["extensions"] if e["name"] == "tars")["requires"]
+        self.assertIsNone(req["database"])
+        self.assertFalse(req["always_on"])
+        self.assertEqual(req["credentials"], [])
+
     def test_an_extension_that_needs_nothing_says_so_in_words(self) -> None:
         tars_entry = next(e for e in self.data["extensions"] if e["name"] == "tars")
         self.assertIn("runs where your agent runs", self.registry.needs(tars_entry))

@@ -53,6 +53,14 @@ cd ~/tars && gh repo create tars --private --source=. --remote=origin --push
 
 **Private.** This repo will hold everything they tell you. If `gh` is missing or not logged in, do not hand the human a task list: install it or authenticate it if you can, and if you truly cannot, open `https://github.com/new` in their browser, tell them in one line what to click, and finish the wiring yourself once the remote exists.
 
+## 6. Mention the host once, then drop it
+
+TARS runs on their machine and needs nothing else. Say so, and say what a second machine would add, in one line, without turning it into a step:
+
+> This lives on your laptop. If you ever want it doing things while you sleep, a morning digest, a nightly cleanup, an always-connected messaging account, that wants a machine that stays awake: a small VPS, a Raspberry Pi, an old laptop. Same repo, cloned twice, same remote. Say the word whenever.
+
+**Do not set one up now, do not ask which one they would pick, do not list providers.** They asked for a memory, not for infrastructure. The moment it becomes worth it is when they install an extension that needs it, and `/tars-extend` handles that conversation with a concrete reason in hand.
+
 ## After that
 
 The skills in `$TARS_SRC/skills/` are the interface. Read the one whose `description` matches what the human asks for:

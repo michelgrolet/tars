@@ -135,6 +135,8 @@ git clone https://github.com/michelgrolet/people-memory-mcp.git   # anywhere els
 
 An extension runs with your agent's permissions, so read what it loads before installing it. [`extensions/README.md`](extensions/README.md) has the rule for where an extension lives and how to add one.
 
+**TARS itself never needs a server**, and a test fails the build the day its own `requires` stops being empty. A host earns its place only when something has to keep running while you sleep: a linked messaging session, a nightly digest, a scheduled update. That is a five-dollar VPS or a Raspberry Pi, suggested at the moment there is a reason for it, never as a step in the install.
+
 ## The CLI underneath
 
 ```
@@ -165,7 +167,7 @@ It also states what it does not protect against: anyone with shell access, anoth
 python3 -m unittest discover -s tools/tests -v
 ```
 
-56 tests, no dependencies. CI runs them on Linux and macOS against Python 3.10 and 3.13, plus a smoke job that builds a repo from scratch in a sandboxed `$HOME` and checks that the pre-commit hook actually refuses a threshold with a rule removed, plus a bootstrap job that clones the commit into a clean directory and installs from the clone, because "a git URL and a shell" is a claim and not a hope.
+57 tests, no dependencies. CI runs them on Linux and macOS against Python 3.10 and 3.13, plus a smoke job that builds a repo from scratch in a sandboxed `$HOME` and checks that the pre-commit hook actually refuses a threshold with a rule removed, plus a bootstrap job that clones the commit into a clean directory and installs from the clone, because "a git URL and a shell" is a claim and not a hope.
 
 ## Layout
 
