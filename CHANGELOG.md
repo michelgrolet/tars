@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.5.0
+
+The dependency runs one way. An extension with its own repo works with no TARS anywhere on the machine, and someone can find it, clone it and wire it into whatever agent they already have without ever learning this harness exists.
+
+- `tools/registry.py` prints the way in that skips the harness, one line per extension, and a test fails the build if an externally-hosted extension is ever listed with only a `claude plugin install <name>@tars`.
+- The rule is derived from where the code lives rather than declared, because a declared boolean is a promise nobody checks. Its own repo means it stands alone; shipped in `extensions/` means it has no life without TARS, which is the only thing that earns a place in-tree.
+- What TARS adds on top is stated instead of implied: skills that decide when to reach for a tool, and a threshold trigger that fires them without being asked. A bare MCP server cannot do that for itself.
+
 ## 1.4.0
 
 Security. A memory repo is written by an agent that never asks permission to commit, and pushed to a remote. Two failures follow from that, and both are now enforced by code rather than by asking a model nicely.

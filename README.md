@@ -122,9 +122,13 @@ python3 tools/registry.py
 ```
 people-memory  https://github.com/michelgrolet/people-memory-mcp
                needs: a postgres to point it at, local or hosted
+               install: git clone https://github.com/michelgrolet/people-memory-mcp.git,
+                        then its own README. No TARS required.
 ```
 
 Three requirements, listed separately because they fail differently. `database` means a Docker container or a free hosted project, on the same laptop as the agent. `credentials` means an OAuth grant nobody can obtain for you. `always_on` is the only one that means a server, because a session or a listener dies when a laptop sleeps.
+
+**Every extension with its own repo runs without TARS**, wired into Codex or Cursor or a script of your own from its own README. What TARS adds on top is the part a bare MCP server cannot do for itself: skills that decide *when* to reach for the tool, and a threshold trigger that fires them without being asked. A test fails the build if an externally-hosted extension is ever listed with only a TARS-shaped way in.
 
 **[people-memory](https://github.com/michelgrolet/people-memory-mcp)** gives the agent a private graph of everyone you know: `search_people`, `remember_person`, `add_fact`, `connect_people`, `find_intro_path`, plus skills that record people during ordinary conversation instead of asking you to fill in a CRM. MIT.
 
@@ -180,7 +184,7 @@ It reports the file and the line, never the value: echoing the match would copy 
 python3 -m unittest discover -s tools/tests -v
 ```
 
-68 tests, no dependencies. CI runs them on Linux and macOS against Python 3.10 and 3.13, plus three jobs that check claims rather than code:
+71 tests, no dependencies. CI runs them on Linux and macOS against Python 3.10 and 3.13, plus three jobs that check claims rather than code:
 
 - **smoke** builds a repo in a sandboxed `$HOME`, plants a credential in it, and asserts it cannot be committed and cannot be pushed past `--no-verify`, with the bare remote still at zero commits at the end;
 - **bootstrap** clones the commit into a clean directory and installs from the clone, because "a git URL and a shell" is a claim and not a hope;

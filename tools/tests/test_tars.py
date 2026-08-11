@@ -595,6 +595,36 @@ class TestRegistry(unittest.TestCase):
             self.assertNotIn("requires", entry)
             self.assertNotIn("provides", entry)
 
+    def test_an_extension_with_its_own_repo_installs_without_the_harness(self) -> None:
+        """The dependency runs one way. Someone can find people-memory, clone it, wire it
+        into whatever agent they already have, and never learn TARS exists. A registry that
+        offered them only `claude plugin install <name>@tars` would have made the harness a
+        prerequisite for its own extensions."""
+        for ext in self.data["extensions"]:
+            if not self.registry.standalone(ext):
+                continue
+            line = self.registry.install(ext)
+            self.assertIn(f"git clone {ext['repo']}.git", line, ext["name"])
+            self.assertIn("No TARS required", line, ext["name"])
+
+    def test_only_an_extension_shipped_in_tree_is_allowed_to_need_tars(self) -> None:
+        """A string source means the code lives in this repo, which is the one case where
+        there is nothing to clone on its own. Anything with a repo of its own stands alone."""
+        for ext in self.data["extensions"]:
+            if ext["name"] == "tars":
+                continue
+            in_tree = isinstance(ext["source"], str)
+            self.assertEqual(self.registry.standalone(ext), not in_tree, ext["name"])
+
+    def test_the_printed_list_shows_the_way_in_that_skips_the_harness(self) -> None:
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            self.registry.main([])
+        printed = buffer.getvalue()
+        for ext in self.data["extensions"]:
+            if self.registry.standalone(ext):
+                self.assertIn(f"git clone {ext['repo']}.git", printed, ext["name"])
+
 
 class TestMarketplace(unittest.TestCase):
     """The registry is the only thing standing between someone and code that runs with

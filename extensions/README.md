@@ -2,6 +2,22 @@
 
 An extension is a capability the agent gains: an MCP server, a skill pack, a dashboard, a guard.
 
+## Standalone first, TARS optional
+
+**An extension with its own repo must work with no TARS anywhere on the machine.** Someone finds it, clones it, wires it into Codex or Cursor or a script of their own, and never learns this harness exists. That is the normal case, not the degraded one.
+
+TARS is then one client among several, and what it adds is the part a bare MCP server cannot do for itself: the skills that decide *when* to reach for the tool, and the threshold trigger that makes them fire without being asked. `people-memory` is the proof. Its repo has its own setup wizard, its own Codex and Claude Code instructions, its own tests and its own releases, and the string `tars` appears nowhere in it.
+
+The dependency runs one way. This registry points at extensions; no extension points back at a harness it needs.
+
+The one exception is an extension that lives in this directory. It has no repo to clone and no life without TARS, and that is the only thing that earns it a place in-tree.
+
+```bash
+python3 tools/registry.py
+```
+
+prints the install path for each one, and for anything with its own repo that path is a `git clone` and nothing else. A test fails the build if an externally-hosted extension is ever listed with only a TARS-shaped way in.
+
 ## What each one costs to run
 
 Half of these speak to something that has to exist before they are useful. That belongs in the index, not in a paragraph someone finds after installing:

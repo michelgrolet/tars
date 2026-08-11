@@ -67,6 +67,27 @@ def needs(ext: dict) -> str:
     return "; ".join(parts) if parts else "nothing, it runs where your agent runs"
 
 
+def standalone(ext: dict) -> bool:
+    """Does this extension work with no TARS anywhere on the machine?
+
+    Derived from where the code lives rather than declared, because a declared boolean
+    is a promise nobody checks. An extension with its own repo is cloned and wired from
+    its own README, and TARS is one client of it among several. An extension that lives
+    in this directory has no repo to clone and no life without the harness, which is the
+    only reason it is allowed in here.
+    """
+    return ext["name"] != "tars" and not isinstance(ext["source"], str)
+
+
+def install(ext: dict) -> str:
+    """How you get it without TARS, for the ones that have a way."""
+    if ext["name"] == "tars":
+        return "the harness itself"
+    if not standalone(ext):
+        return f"ships inside TARS, at {ext['source']}"
+    return f"git clone {ext['repo']}.git, then its own README. No TARS required."
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true", help="fail if the marketplace drifted")
@@ -95,6 +116,7 @@ def main(argv: list[str] | None = None) -> int:
     for ext in registry["extensions"]:
         print(f"{ext['name']:<{width}}  {ext['repo']}")
         print(f"{'':<{width}}  needs: {needs(ext)}")
+        print(f"{'':<{width}}  install: {install(ext)}")
     return 0
 
 
