@@ -33,6 +33,21 @@
       },
       "homepage": "https://github.com/michelgrolet/people-memory-mcp",
       "license": "MIT"
+    },
+    {
+      "name": "location-memory",
+      "description": "A private location archive that gives your agent durable memory of where you have been: stays, cities, countries, trips, journeys and records, with the gaps in the archive reported rather than hidden. Postgres behind it, self-hostable.",
+      "author": {
+        "name": "Michel Grolet",
+        "url": "https://github.com/michelgrolet"
+      },
+      "category": "productivity",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/michelgrolet/tars-location-mcp.git"
+      },
+      "homepage": "https://github.com/michelgrolet/tars-location-mcp",
+      "license": "MIT"
     }
   ]
 }

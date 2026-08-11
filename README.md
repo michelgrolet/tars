@@ -132,8 +132,11 @@ Three requirements, listed separately because they fail differently. `database` 
 
 **[people-memory](https://github.com/michelgrolet/people-memory-mcp)** gives the agent a private graph of everyone you know: `search_people`, `remember_person`, `add_fact`, `connect_people`, `find_intro_path`, plus skills that record people during ordinary conversation instead of asking you to fill in a CRM. MIT.
 
+**[location-memory](https://github.com/michelgrolet/tars-location-mcp)** gives it a private archive of where you have been: stays, cities, countries, trips, journeys, records, and `location_coverage`, which reports the holes so the agent says "nothing was recorded then" instead of "you were never there". MIT.
+
 ```bash
-claude plugin install people-memory@tars     # Claude Code
+claude plugin install people-memory@tars       # Claude Code
+claude plugin install location-memory@tars
 git clone https://github.com/michelgrolet/people-memory-mcp.git   # anywhere else, then follow its README
 ```
 

@@ -31,6 +31,8 @@ tars           https://github.com/michelgrolet/tars
                needs: nothing, it runs where your agent runs
 people-memory  https://github.com/michelgrolet/people-memory-mcp
                needs: a postgres to point it at, local or hosted
+location-memory  https://github.com/michelgrolet/tars-location-mcp
+               needs: a postgres to point it at, local or hosted
 ```
 
 Three independent requirements, because they fail differently:
@@ -115,3 +117,6 @@ Entries track their default branch, so an update picks up improvements. Pin a `c
 ## Current extensions
 
 - **[people-memory](https://github.com/michelgrolet/people-memory-mcp)**, a private people graph. Six MCP tools (`search_people`, `get_person`, `remember_person`, `add_fact`, `connect_people`, `find_intro_path`) and six skills that record people during ordinary conversation. Needs a Postgres, runs on your laptop against one in Docker. MIT.
+- **[location-memory](https://github.com/michelgrolet/tars-location-mcp)**, a private location archive. Fourteen MCP tools over stays, cities, countries, trips, journeys and records, plus `location_coverage`, which reports the holes in the archive so the agent stops answering "you were never there" when the truth is "nothing was recorded then". Two skills. Needs a Postgres, runs on your laptop against one in Docker. MIT.
+
+The two share nothing but a database engine, and each is installable without the other. `location-memory` can link a trip to a person, and does it through an optional migration that refuses to install unless a `people` table already exists.
