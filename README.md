@@ -134,9 +134,12 @@ Three requirements, listed separately because they fail differently. `database` 
 
 **[location-memory](https://github.com/michelgrolet/tars-location-mcp)** gives it a private archive of where you have been: stays, cities, countries, trips, journeys, records, and `location_coverage`, which reports the holes so the agent says "nothing was recorded then" instead of "you were never there". MIT.
 
+**[srs](https://github.com/michelgrolet/srs)** gives you one simple stack of cards shared by a minimal web app and your agent. Create, edit, search and review from chat; FSRS schedules the next review and existing tags are offered before new ones. MIT.
+
 ```bash
 claude plugin install people-memory@tars       # Claude Code
 claude plugin install location-memory@tars
+claude plugin install srs@tars
 git clone https://github.com/michelgrolet/people-memory-mcp.git   # anywhere else, then follow its README
 ```
 

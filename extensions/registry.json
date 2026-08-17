@@ -69,6 +69,30 @@
         "always_on": false,
         "credentials": []
       }
+    },
+    {
+      "name": "srs",
+      "description": "A tiny spaced-repetition stack shared by a minimal web app and an MCP server. Create, edit, search and review cards from chat, with FSRS scheduling and tags that reuse existing categories.",
+      "repo": "https://github.com/michelgrolet/srs",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/michelgrolet/srs.git"
+      },
+      "category": "productivity",
+      "license": "MIT",
+      "provides": {
+        "skills": 1,
+        "mcp_servers": [
+          "srs"
+        ]
+      },
+      "requires": {
+        "database": null,
+        "always_on": false,
+        "credentials": [
+          "GitHub authentication with Contents read and write access to an srs repository"
+        ]
+      }
     }
   ]
 }
